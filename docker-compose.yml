@@ -1,0 +1,26 @@
+# Use version 3.8 or newer for best compatibility
+version: '3.8'
+
+services:
+  # This is the name of our service
+  mongodb:
+    # We will use the official MongoDB image from Docker Hub
+    image: mongo:latest
+    container_name: my-mongo-container
+    
+    # Environment variables for setting up the root user and password
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: your_root_user
+      MONGO_INITDB_ROOT_PASSWORD: your_secret_password
+      
+    # Map the container's port 27017 to the host's port 27017
+    ports:
+      - '27017:27017'
+      
+    # (Optional) Persist data so it's not lost when the container stops
+    volumes:
+      - mongo-data:/data/db
+
+# (Optional) Define the volume for data persistence
+volumes:
+  mongo-data:
