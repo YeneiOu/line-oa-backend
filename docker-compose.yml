@@ -10,8 +10,8 @@ services:
     
     # Environment variables for setting up the root user and password
     environment:
-      MONGO_INITDB_ROOT_USERNAME: your_root_user
-      MONGO_INITDB_ROOT_PASSWORD: your_secret_password
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
       
     # Map the container's port 27017 to the host's port 27017
     ports:

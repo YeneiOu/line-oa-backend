@@ -36,23 +36,23 @@ func Load() *Config {
 
 	return &Config{
 		// MongoDB Database
-		MongoURI:      getEnv("MONGO_URI", "mongodb://your_root_user:your_secret_password@localhost:27017"),
-		MongoDatabase: getEnv("MONGO_DATABASE", "line_oa_backend"),
+		MongoURI:      os.Getenv("MONGO_URI"),
+		MongoDatabase: os.Getenv("MONGO_DATABASE"),
 
 		// JWT
-		JWTSecret: getEnv("JWT_SECRET", "default-secret-key"),
+		JWTSecret: os.Getenv("JWT_SECRET"),
 
 		// LINE OAuth
-		LINEChannelID:     getEnv("LINE_CHANNEL_ID", ""),
-		LINEChannelSecret: getEnv("LINE_CHANNEL_SECRET", ""),
-		LINERedirectURI:   getEnv("LINE_REDIRECT_URI", "http://localhost:3000/callback"),
+		LINEChannelID:     os.Getenv("LINE_CHANNEL_ID"),
+		LINEChannelSecret: os.Getenv("LINE_CHANNEL_SECRET"),
+		LINERedirectURI:   os.Getenv("LINE_REDIRECT_URI"),
 
 		// LINE Messaging API
-		LINEChannelAccessToken: getEnv("LINE_CHANNEL_ACCESS_TOKEN", ""),
+		LINEChannelAccessToken: os.Getenv("LINE_CHANNEL_ACCESS_TOKEN"),
 
 		// Server
-		Port:        getEnv("PORT", "8080"),
-		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
+		Port:        os.Getenv("PORT"),
+		FrontendURL: os.Getenv("FRONTEND_URL"),
 	}
 }
 
