@@ -3,11 +3,13 @@ package main
 import (
 	"log"
 
-	"line-oa-backend/config"
-	"line-oa-backend/database"
-	"line-oa-backend/handlers"
-	"line-oa-backend/middleware"
-	"line-oa-backend/services"
+	"line-oa-backend/internal/adapters/handlers"
+	"line-oa-backend/internal/adapters/middleware"
+	"line-oa-backend/internal/adapters/repositories"
+	"line-oa-backend/internal/adapters/services"
+	"line-oa-backend/internal/application"
+	"line-oa-backend/internal/infrastructure/config"
+	"line-oa-backend/internal/infrastructure/database"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -19,16 +21,32 @@ func main() {
 	cfg := config.Load()
 
 	// Connect to database
-	database.Connect(cfg)
+	db, err := database.Connect(cfg.MongoURI, cfg.MongoDatabase)
+	if err != nil {
+		log.Fatal("Failed to connect to database:", err)
+	}
 
-	// Initialize services
-	lineOAuthService := services.NewLINEOAuthService(cfg)
-	lineMessagingService := services.NewLINEMessagingService(cfg)
-	jwtService := services.NewJWTService(cfg)
+	// Initialize repositories
+	userRepo := repositories.NewMongoUserRepository(db)
+	bookingRepo := repositories.NewMongoBookingRepository(db)
 
-	// Initialize handlers
-	authHandler := handlers.NewAuthHandler(lineOAuthService, jwtService)
-	bookingHandler := handlers.NewBookingHandler(lineMessagingService)
+	// Initialize external services
+	lineOAuthService := services.NewLINEOAuthServiceAdapter(
+		cfg.LINEChannelID,
+		cfg.LINEChannelSecret,
+		cfg.LINERedirectURI,
+	)
+	lineMessagingService := services.NewLINEMessagingServiceAdapter(cfg.LINEChannelAccessToken)
+	jwtService := services.NewJWTServiceAdapter(cfg.JWTSecret)
+	notificationService := services.NewNotificationServiceAdapter(lineMessagingService)
+
+	// Initialize application services (use cases)
+	authService := application.NewAuthService(userRepo, lineOAuthService, jwtService)
+	bookingService := application.NewBookingService(bookingRepo, userRepo, notificationService)
+
+	// Initialize HTTP handlers
+	authHandler := handlers.NewAuthHandlerAdapter(authService)
+	bookingHandler := handlers.NewBookingHandlerAdapter(bookingService)
 
 	// Initialize Fiber app
 	app := fiber.New(fiber.Config{
@@ -46,7 +64,7 @@ func main() {
 	// Middleware
 	app.Use(logger.New())
 	app.Use(recover.New())
-	app.Use(middleware.CORSMiddleware(cfg))
+	app.Use(middleware.CORSMiddleware(cfg.FrontendURL))
 
 	// Health check endpoint
 	app.Get("/health", func(c *fiber.Ctx) error {
@@ -69,7 +87,7 @@ func main() {
 	protected := api.Group("/", middleware.AuthMiddleware(jwtService))
 
 	// User routes
-	protected.Get("/user", authHandler.User)
+	protected.Get("/me", authHandler.GetUser)
 
 	// Booking routes
 	bookings := protected.Group("/bookings")
