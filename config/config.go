@@ -29,31 +29,49 @@ type Config struct {
 }
 
 func Load() *Config {
-	// Load .env file if it exists
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using environment variables")
+	// Try to load .env file from current directory and parent directories
+	envFiles := []string{".env", "../.env", "../../.env"}
+	loaded := false
+	
+	for _, envFile := range envFiles {
+		if err := godotenv.Load(envFile); err == nil {
+			log.Printf("Loaded environment from: %s", envFile)
+			loaded = true
+			break
+		}
+	}
+	
+	if !loaded {
+		log.Println("No .env file found, using system environment variables")
 	}
 
-	return &Config{
+	config := &Config{
 		// MongoDB Database
-		MongoURI:      os.Getenv("MONGO_URI"),
-		MongoDatabase: os.Getenv("MONGO_DATABASE"),
+		MongoURI:      getEnv("MONGO_URI", ""),
+		MongoDatabase: getEnv("MONGO_DATABASE", "line_oa_backend"),
 
 		// JWT
-		JWTSecret: os.Getenv("JWT_SECRET"),
+		JWTSecret: getEnv("JWT_SECRET", "default-secret-key-change-in-production"),
 
 		// LINE OAuth
-		LINEChannelID:     os.Getenv("LINE_CHANNEL_ID"),
-		LINEChannelSecret: os.Getenv("LINE_CHANNEL_SECRET"),
-		LINERedirectURI:   os.Getenv("LINE_REDIRECT_URI"),
+		LINEChannelID:     getEnv("LINE_CHANNEL_ID", ""),
+		LINEChannelSecret: getEnv("LINE_CHANNEL_SECRET", ""),
+		LINERedirectURI:   getEnv("LINE_REDIRECT_URI", "http://localhost:3000/callback"),
 
 		// LINE Messaging API
-		LINEChannelAccessToken: os.Getenv("LINE_CHANNEL_ACCESS_TOKEN"),
+		LINEChannelAccessToken: getEnv("LINE_CHANNEL_ACCESS_TOKEN", ""),
 
 		// Server
-		Port:        os.Getenv("PORT"),
-		FrontendURL: os.Getenv("FRONTEND_URL"),
+		Port:        getEnv("PORT", "8080"),
+		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
 	}
+
+	// Validate required fields
+	if config.MongoURI == "" {
+		log.Fatal("MONGO_URI environment variable is required")
+	}
+
+	return config
 }
 
 func getEnv(key, defaultValue string) string {
