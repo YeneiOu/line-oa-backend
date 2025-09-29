@@ -13,23 +13,35 @@ var db *mongo.Database
 
 // Connect establishes connection to MongoDB
 func Connect(mongoURI, databaseName string) (*mongo.Database, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Configure client options for MongoDB Atlas
 	clientOptions := options.Client().ApplyURI(mongoURI)
+	
+	// Add additional options for Atlas connections
+	clientOptions.SetMaxPoolSize(10)
+	clientOptions.SetMinPoolSize(1)
+	clientOptions.SetMaxConnIdleTime(30 * time.Second)
+	
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
+		log.Printf("Failed to create MongoDB client: %v", err)
 		return nil, err
 	}
 
-	// Test the connection
-	err = client.Ping(ctx, nil)
+	// Test the connection with a longer timeout for Atlas
+	pingCtx, pingCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer pingCancel()
+	
+	err = client.Ping(pingCtx, nil)
 	if err != nil {
+		log.Printf("Failed to ping MongoDB: %v", err)
 		return nil, err
 	}
 
 	db = client.Database(databaseName)
-	log.Printf("Connected to MongoDB database: %s", databaseName)
+	log.Printf("Successfully connected to MongoDB database: %s", databaseName)
 	
 	return db, nil
 }
