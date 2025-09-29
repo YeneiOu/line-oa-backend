@@ -87,7 +87,7 @@ func main() {
 	protected := api.Group("/", middleware.AuthMiddleware(jwtService))
 
 	// User routes
-	protected.Get("/me", authHandler.GetUser)
+	protected.Get("/user", authHandler.GetUser)
 
 	// Booking routes
 	bookings := protected.Group("/bookings")
